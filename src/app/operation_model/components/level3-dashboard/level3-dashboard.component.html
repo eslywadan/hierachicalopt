@@ -1,0 +1,455 @@
+<div class="level3-dashboard">
+  <div class="card">
+    <div class="card-header">
+      <h2>Level 3 LSTM Operation Model</h2>
+      <p>Production Planning & Schedule Validation</p>
+    </div>
+    
+    <div class="card-content">
+      <!-- Model Status Bar -->
+      <div class="status-section">
+        <div class="status-info">
+          <span class="status-label">Model Status:</span>
+          <span class="status-badge" [class]="trainingStatus().status">
+            {{ trainingStatus().status | uppercase }}
+          </span>
+          <span class="status-message">{{ trainingStatus().message }}</span>
+        </div>
+        
+        @if (isTraining()) {
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="trainingStatus().progress"></div>
+          </div>
+        }
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions-section">
+        <button class="btn btn-primary" 
+                (click)="initializeModel()"
+                [disabled]="isTraining()">
+          Initialize Model
+        </button>
+        
+        <button class="btn btn-accent" 
+                (click)="trainModel()"
+                [disabled]="!trainingStatus().status.includes('initialized') || isTraining()">
+          Train Model
+        </button>
+        
+        <button class="btn btn-secondary" 
+                (click)="saveModel()"
+                [disabled]="!isModelReady()">
+          Save Model
+        </button>
+        
+        <button class="btn btn-secondary" 
+                (click)="loadModel()">
+          Load Model
+        </button>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <button class="tab-button" [class.active]="activeTab === 'predictions'" (click)="activeTab = 'predictions'">
+          Make Predictions
+        </button>
+        <button class="tab-button" [class.active]="activeTab === 'visualizations'" (click)="activeTab = 'visualizations'">
+          Visualizations
+        </button>
+        <button class="tab-button" [class.active]="activeTab === 'data'" (click)="activeTab = 'data'">
+          Prediction Data
+        </button>
+        <button class="tab-button" [class.active]="activeTab === 'training'" (click)="activeTab = 'training'">
+          Training Data
+        </button>
+        <button class="tab-button" [class.active]="activeTab === 'littles-law'" (click)="switchToLittlesLawTab()">
+          Little's Law Analysis
+        </button>
+      </div>
+
+      <!-- Tab Content -->
+      @if (activeTab === 'predictions') {
+        <div class="tab-content">
+          <form [formGroup]="predictionForm" class="prediction-form">
+            <div class="form-row">
+              <div class="form-field">
+                <label>Plant</label>
+                <select formControlName="plant">
+                  @for (plant of plants; track plant) {
+                    <option [value]="plant">{{ plant }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-field">
+                <label>Application</label>
+                <select formControlName="application">
+                  @for (app of applications; track app) {
+                    <option [value]="app">{{ app }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-field">
+                <label>Panel Size</label>
+                <select formControlName="panelSize">
+                  @for (size of panelSizes; track size) {
+                    <option [value]="size">{{ size }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label>Prediction Days</label>
+                <input type="number" formControlName="predictionDays">
+              </div>
+
+              <div class="form-field">
+                <label>Current WIP</label>
+                <input type="number" formControlName="currentWIP">
+              </div>
+
+              <div class="form-field">
+                <label>Planned Throughput</label>
+                <input type="number" formControlName="plannedThroughput">
+              </div>
+
+              <div class="form-field">
+                <label>Target Production (Optional)</label>
+                <input type="number" formControlName="targetProduction">
+              </div>
+            </div>
+
+            <button class="btn btn-primary" 
+                    (click)="makePrediction()"
+                    [disabled]="!isModelReady() || predictionForm.invalid">
+              Generate Predictions
+            </button>
+          </form>
+
+          @if (validationResult()) {
+            <div class="validation-card" [class.valid]="validationResult()!.isValid">
+              <h3>Schedule Validation</h3>
+              <div class="validation-info">
+                <div class="info-item">
+                  <span class="label">Status:</span>
+                  <span class="value" [class.success]="validationResult()!.isValid">
+                    {{ validationResult()!.isValid ? 'FEASIBLE' : 'INFEASIBLE' }}
+                  </span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Expected Cycle Time:</span>
+                  <span class="value">{{ validationResult()!.expectedCycleTime | number:'1.2-2' }} days</span>
+                </div>
+                @if (validationResult()!.requiredThroughput) {
+                  <div class="info-item">
+                    <span class="label">Required Throughput:</span>
+                    <span class="value">{{ validationResult()!.requiredThroughput | number:'1.1-1' }} units/day</span>
+                  </div>
+                }
+                <div class="info-item">
+                  <span class="label">Message:</span>
+                  <span class="value">{{ validationResult()!.message }}</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      @if (activeTab === 'visualizations') {
+        <div class="tab-content">
+          <div class="chart-controls">
+            <button class="btn" [class.active]="chartType === 'wip'" (click)="chartType = 'wip'">WIP</button>
+            <button class="btn" [class.active]="chartType === 'throughput'" (click)="chartType = 'throughput'">Throughput</button>
+            <button class="btn" [class.active]="chartType === 'cycleTime'" (click)="chartType = 'cycleTime'">Cycle Time</button>
+            <button class="btn" [class.active]="chartType === 'compliance'" (click)="chartType = 'compliance'">Compliance</button>
+          </div>
+          
+          <app-level3-chart 
+            [data]="predictions()" 
+            [chartType]="chartType">
+          </app-level3-chart>
+        </div>
+      }
+
+      @if (activeTab === 'data') {
+        <div class="tab-content">
+          <div class="data-actions">
+            <button class="btn btn-secondary" (click)="exportData()">
+              Export to CSV
+            </button>
+          </div>
+
+          @if (predictions().length > 0) {
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>WIP</th>
+                  <th>Throughput</th>
+                  <th>Cycle Time</th>
+                  <th>Compliance %</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (element of predictions(); track $index) {
+                  <tr>
+                    <td>{{ element.date | date:'short' }}</td>
+                    <td>{{ element.wip }}</td>
+                    <td>{{ element.throughput | number:'1.1-1' }}</td>
+                    <td>{{ element.cycleTime | number:'1.2-2' }}</td>
+                    <td>
+                      <span [class.high-compliance]="(element.littlesLawCompliance || 0) > 95">
+                        {{ (element.littlesLawCompliance || 0) | number:'1.1-1' }}%
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <div class="no-data">
+              <p>No predictions available. Please train the model and make predictions.</p>
+            </div>
+          }
+        </div>
+      }
+
+      @if (activeTab === 'training') {
+        <div class="tab-content">
+          <div class="training-data-controls">
+            <div class="control-group">
+              <label>Plant Filter:</label>
+              <select [(ngModel)]="selectedPlant" (change)="filterTrainingData()">
+                <option value="all">All Plants</option>
+                @for (plant of plants; track plant) {
+                  <option [value]="plant">{{ plant }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label>Application Filter:</label>
+              <select [(ngModel)]="selectedApplication" (change)="filterTrainingData()">
+                <option value="all">All Applications</option>
+                @for (app of applications; track app) {
+                  <option [value]="app">{{ app }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label>Chart Type:</label>
+              <select [(ngModel)]="trainingChartType" (change)="updateTrainingChart()">
+                <option value="wip">WIP Over Time</option>
+                <option value="throughput">Throughput Over Time</option>
+                <option value="cycleTime">Cycle Time Over Time</option>
+                <option value="all">All Metrics</option>
+              </select>
+            </div>
+
+            <button class="btn btn-secondary" (click)="exportTrainingData()">
+              Export Training Data
+            </button>
+          </div>
+
+          <div class="training-stats">
+            <div class="stat-card">
+              <h4>Training Data Stats</h4>
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <span class="stat-label">Total Records:</span>
+                  <span class="stat-value">{{ filteredTrainingData().length }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Date Range:</span>
+                  <span class="stat-value">{{ getDateRange() }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Plants:</span>
+                  <span class="stat-value">{{ getUniquePlants().length }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Applications:</span>
+                  <span class="stat-value">{{ getUniqueApplications().length }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="training-chart-container">
+            <app-level3-chart 
+              [data]="filteredTrainingData()" 
+              [chartType]="trainingChartType">
+            </app-level3-chart>
+          </div>
+
+          <div class="training-data-table">
+            <h4>Sample Training Data (Last 50 records)</h4>
+            @if (filteredTrainingData().length > 0) {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Plant</th>
+                    <th>Application</th>
+                    <th>Panel Size</th>
+                    <th>WIP</th>
+                    <th>Throughput</th>
+                    <th>Cycle Time</th>
+                    <th>Day of Week</th>
+                    <th>Holiday</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (record of filteredTrainingData().slice(-50); track $index) {
+                    <tr>
+                      <td>{{ record.date | date:'short' }}</td>
+                      <td>{{ record.plant }}</td>
+                      <td>{{ record.application }}</td>
+                      <td>{{ record.panelSize }}</td>
+                      <td>{{ record.wip }}</td>
+                      <td>{{ record.throughput | number:'1.1-1' }}</td>
+                      <td>{{ record.cycleTime | number:'1.2-2' }}</td>
+                      <td>{{ getDayOfWeekName(record.date) }}</td>
+                      <td>{{ isHoliday(record.day) ? 'Yes' : 'No' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <div class="no-data">
+                <p>No training data available. Please initialize and train the model first.</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (activeTab === 'littles-law') {
+        <div class="tab-content">
+          <div class="littles-law-analysis">
+            <div class="analysis-header">
+              <h3>Little's Law Analysis</h3>
+              <p>Visualizing the relationship between WIP, Throughput, and Cycle Time: <strong>WIP = Throughput × Cycle Time</strong></p>
+            </div>
+
+            <!-- Compliance Summary -->
+            @if (trainingData().length > 0) {
+              <div class="compliance-summary">
+                <div class="summary-card">
+                  <h4>Overall Little's Law Compliance</h4>
+                  <div class="compliance-stats">
+                    <div class="stat-item">
+                      <span class="stat-label">Average Compliance:</span>
+                      <span class="stat-value">{{ getAverageCompliance() | number:'1.1-1' }}%</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Data Points:</span>
+                      <span class="stat-value">{{ trainingData().length }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Cycle Time Range:</span>
+                      <span class="stat-value">{{ getCycleTimeRange() }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Little's Law Scatter Plot -->
+              <div class="littles-law-chart">
+                <h4>WIP vs Throughput vs Cycle Time Relationship</h4>
+                <div class="chart-container">
+                  <canvas id="littlesLawChart" width="800" height="400"></canvas>
+                  <div id="scatterPlotFallback" class="chart-fallback" style="display: none;">
+                    <div class="fallback-message">
+                      <p><strong>Chart.js not available - showing data summary:</strong></p>
+                      <div class="data-summary">
+                        <div class="summary-item">
+                          <span>Total Data Points:</span>
+                          <span>{{ trainingData().length }}</span>
+                        </div>
+                        <div class="summary-item">
+                          <span>WIP Range:</span>
+                          <span>{{ getWIPRange() }}</span>
+                        </div>
+                        <div class="summary-item">
+                          <span>Throughput Range:</span>
+                          <span>{{ getThroughputRange() }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="chart-legend">
+                  <p><strong>Chart Explanation:</strong></p>
+                  <ul>
+                    <li>Each point represents a day's operations for a specific plant/application/panel combination</li>
+                    <li>Point size = Cycle Time (larger points = longer cycle times)</li>
+                    <li>Color intensity = Little's Law compliance (darker = better compliance)</li>
+                    <li>Perfect Little's Law compliance would show points on a straight line</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Compliance Distribution -->
+              <div class="compliance-distribution">
+                <h4>Little's Law Compliance Distribution</h4>
+                <div class="chart-container">
+                  <canvas id="complianceChart" width="800" height="300"></canvas>
+                  <div id="complianceChartFallback" class="chart-fallback" style="display: none;">
+                    <div class="fallback-message">
+                      <p><strong>Compliance Summary:</strong></p>
+                      <div class="compliance-bars">
+                        @for (range of getComplianceRanges(); track range.label) {
+                          <div class="compliance-bar">
+                            <span class="bar-label">{{ range.label }}</span>
+                            <div class="bar-container">
+                              <div class="bar-fill" [style.width.%]="range.percentage"></div>
+                              <span class="bar-value">{{ range.count }}</span>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Plant/Application Breakdown -->
+              <div class="breakdown-analysis">
+                <h4>Breakdown by Plant and Application</h4>
+                <div class="breakdown-grid">
+                  @for (plant of plants; track plant) {
+                    <div class="plant-card">
+                      <h5>{{ plant }}</h5>
+                      <div class="plant-stats">
+                        <div class="stat-row">
+                          <span>Avg Compliance:</span>
+                          <span>{{ getPlantCompliance(plant) | number:'1.1-1' }}%</span>
+                        </div>
+                        <div class="stat-row">
+                          <span>Avg Cycle Time:</span>
+                          <span>{{ getPlantAvgCycleTime(plant) | number:'1.2-2' }} days</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="no-data">
+                <p>No training data available. Please initialize the model first to see Little's Law analysis.</p>
+                <button class="btn btn-primary" (click)="initializeModel()">Initialize Model</button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

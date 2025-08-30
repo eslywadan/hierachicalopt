@@ -1,0 +1,118 @@
+/* App.css */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f9fafb;
+}
+
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navigation Styles */
+.app-nav {
+  background-color: #3b82f6;
+  color: white;
+  padding: 16px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-nav-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.app-nav-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+.app-nav-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.app-nav-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #2563eb;
+  color: white;
+}
+
+.app-nav-button:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.app-nav-button-active {
+  background-color: #1e40af;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Main Content */
+.app-main {
+  flex: 1;
+  background-color: #f9fafb;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .app-nav-container {
+    flex-direction: column;
+    gap: 16px;
+    padding: 0 16px;
+  }
+  
+  .app-nav-title {
+    font-size: 18px;
+    text-align: center;
+  }
+  
+  .app-nav-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .app-nav-button {
+    flex: 1;
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-nav-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .app-nav-button {
+    max-width: none;
+  }
+}

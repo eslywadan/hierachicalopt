@@ -1,0 +1,18 @@
+# Flask Backend Requirements for LSTM Model Service
+Flask==2.3.3
+Flask-CORS==4.0.0
+
+# Machine Learning & Data Science
+tensorflow>=2.13.0
+numpy>=1.24.3
+pandas>=2.0.3
+scikit-learn>=1.3.0
+
+# Utilities
+python-dotenv>=1.0.0
+gunicorn>=21.2.0
+
+# Development
+pytest>=7.4.0
+black>=23.7.0
+flake8>=6.0.0

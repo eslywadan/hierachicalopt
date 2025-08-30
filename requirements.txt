@@ -1,0 +1,21 @@
+# Core dependencies
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.1.0
+joblib>=1.2.0
+
+# For Level 1: Evolutionary Algorithms
+pymoo>=0.6.0
+
+# For Level 2: Google OR-Tools
+ortools>=9.5.0
+
+# For data visualization (optional)
+matplotlib>=3.5.0
+seaborn>=0.12.0
+
+# For date handling
+python-dateutil>=2.8.0
+
+# For warnings suppression
+#warnings-everyday
